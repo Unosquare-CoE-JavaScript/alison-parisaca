@@ -1,21 +1,16 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import useSWR from 'swr';
 import type { Account } from '../../types';
 import { UserDetails } from './UserDetails';
 
 export function UserList() {
+  const [isPending, startTransaction] = useTransition();
   const [selectedUser, setSelectedUser] = useState<Account | null>(null);
-  const { data, error } = useSWR<Account[], Error>(
+  const [selectedUserId, setSelectedUserId] = useState(NaN);
+
+  const { data } = useSWR<Account[], Error>(
     `${process.env.REACT_APP_API_BASE}/accounts`
   );
-
-  if (error) {
-    return <div>{error.message}</div>;
-  }
-
-  if (!data) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="row">
@@ -23,7 +18,7 @@ export function UserList() {
 
       <div className="col-3 g-2">
         <ul className="list-group">
-          {data.map((user) => (
+          {data?.map((user) => (
             <li
               key={user.id}
               className={
@@ -32,8 +27,13 @@ export function UserList() {
             >
               <button
                 className="btn shadow-none"
-                onClick={() => setSelectedUser(user)}
+                onClick={
+                  () => {
+                    setSelectedUserId(user.id);
+                    startTransaction(() => setSelectedUser(user));
+                }}
               >
+                {isPending && selectedUserId=== user.id && '🕰️ '}
                 {user.firstname}
                 &nbsp;
                 {user.surname}
